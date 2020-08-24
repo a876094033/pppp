@@ -85,10 +85,10 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="投资限额" prop="amountLimit">
+      <el-form-item label="资产价值" prop="amountLimit">
         <el-input
           v-model="queryParams.amountLimit"
-          placeholder="请输入投资限额"
+          placeholder="请输入资产价值"
           clearable
           size="small"
           @keyup.enter.native="handleQuery"
@@ -188,7 +188,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        label="投资限额"
+        label="资产价值"
         align="center"
         prop="amountLimit"
         :show-overflow-tooltip="true"
@@ -280,8 +280,8 @@
         <el-form-item label="抵押" prop="diya">
           <el-input v-model="form.diya" placeholder="抵押" />
         </el-form-item>
-        <el-form-item label="投资限额" prop="amountLimit">
-          <el-input v-model="form.amountLimit" placeholder="投资限额" />
+        <el-form-item label="资产价值" prop="amountLimit">
+          <el-input v-model="form.amountLimit" placeholder="资产价值" />
         </el-form-item>
         <el-form-item label="借款状态" prop="borrowStatus">
           <el-select v-model="form.borrowStatus" placeholder="请选择">
@@ -293,7 +293,19 @@
             />
           </el-select>
         </el-form-item>
-
+        <el-upload
+          ref="upload"
+          :headers="upload.headers"
+          :action="upload.url + '?updateSupport=' + upload.updateSupport"
+          :on-preview="handlePreview"
+          :on-remove="handleRemove"
+          :on-success="handleFileSuccess"
+          :file-list="fileList"
+          list-type="picture"
+        >
+          <el-button size="small" type="primary">点击上传</el-button>
+          <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+        </el-upload>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" @click="submitForm">确 定</el-button>
@@ -305,13 +317,13 @@
 
 <script>
 import { addBorrow, delBorrow, getBorrow, listBorrow, updateBorrow } from '@/api/borrow/borrow'
-// import borrowAvatar from './borrowAvatar'
+import { getToken } from '@/utils/auth'
 export default {
   name: 'Config',
   // components: { borrowAvatar },
   data() {
     return {
-      // fileList: [],
+      fileList: [],
       // 遮罩层
       loading: true,
       // 选中数组
@@ -359,8 +371,18 @@ export default {
           undefined
 
       },
+      // 上传图片参数
+      upload: {
+        // 是否禁用上传
+        isUploading: false,
+        // 设置上传的请求头部
+        headers: { Authorization: 'Bearer ' + getToken() },
+        // 上传的地址
+        url: process.env.VUE_APP_BASE_API + '/api/v1/borrow/upload'
+      },
       // 表单参数
       form: {
+        borrowImg: ''
       },
       // 表单校验
       rules: {
@@ -402,7 +424,7 @@ export default {
           ],
         amountLimit:
           [
-            { required: true, message: '投资限额不能为空', trigger: 'blur' }
+            { required: true, message: '资产价值不能为空', trigger: 'blur' }
           ],
         borrowStatus:
           [
@@ -486,8 +508,10 @@ export default {
     handleAdd() {
       this.reset()
       this.open = true
-      this.title = '添加Borrow'
+      this.title = '添加借款'
       this.isEdit = false
+      this.fileList = []
+      this.form.borrowImg = ''
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
@@ -503,8 +527,19 @@ export default {
       getBorrow(id).then(response => {
         this.form = response.data
         this.open = true
-        this.title = '修改Borrow'
+        this.title = '修改借款'
         this.isEdit = true
+        // this.form.borrowImg = ""
+        var fileBool = !!response.data.borrowImg
+        if (fileBool === true) {
+          this.form.borrowImg = response.data.borrowImg
+          var fileArr = response.data.borrowImg.split(',')
+          fileArr.pop()
+          this.fileList = []
+          fileArr.forEach((item, index, array) => {
+            this.fileList.push({ name: index, url: process.env.VUE_APP_BASE_API + '/' + item })
+          })
+        }
       })
     },
     /** 提交按钮 */
@@ -549,6 +584,22 @@ export default {
         this.msgSuccess('删除成功')
       }).catch(function() {
       })
+    },
+    handleRemove(file, fileList) {
+      this.form.borrowImg = ''
+      fileList.forEach((item, index, array) => {
+        var url = item.url.split('/static')
+        this.form.borrowImg += 'static' + url[1] + ','
+      })
+
+      console.log(file, fileList)
+    },
+    handlePreview(file) {
+      console.log(file)
+    },
+    handleFileSuccess(file) {
+      this.form.borrowImg += file.data + ','
+      console.log(file)
     }
   }
 }
