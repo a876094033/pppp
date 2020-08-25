@@ -302,9 +302,38 @@
           :on-success="handleFileSuccess"
           :file-list="fileList"
           list-type="picture"
+          limit="3"
         >
-          <el-button size="small" type="primary">点击上传</el-button>
+          <el-button size="small" type="primary">点击上传产品图片</el-button>
           <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+        </el-upload>
+        <el-upload
+          ref="upload"
+          :headers="upload.headers"
+          :action="upload.url + '?updateSupport=' + upload.updateSupport"
+          :on-preview="handlePreview"
+          :on-remove="handleStructRemove"
+          :on-success="handleStructSuccess"
+          :file-list="struct"
+          list-type="picture"
+          limit="1"
+        >
+          <el-button size="small" type="primary">点击上传产品结构图</el-button>
+          <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+        </el-upload>
+        <el-upload
+          ref="upload"
+          :headers="upload.headers"
+          :action="upload.urlP + '?updateSupport=' + upload.updateSupport"
+          :on-preview="handlePreview"
+          :on-remove="handleProveRemove"
+          :on-success="handleProveSuccess"
+          :file-list="prove"
+          list-type="text"
+          limit="1"
+        >
+          <el-button size="small" type="primary">点击上传证明文件清单</el-button>
+          <div slot="tip" class="el-upload__tip">只能上传pdf文件，且不超过500k</div>
         </el-upload>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -324,6 +353,8 @@ export default {
   data() {
     return {
       fileList: [],
+      struct: [],
+      prove: [],
       // 遮罩层
       loading: true,
       // 选中数组
@@ -378,7 +409,8 @@ export default {
         // 设置上传的请求头部
         headers: { Authorization: 'Bearer ' + getToken() },
         // 上传的地址
-        url: process.env.VUE_APP_BASE_API + '/api/v1/borrow/upload'
+        url: process.env.VUE_APP_BASE_API + '/api/v1/borrow/upload',
+        urlP: process.env.VUE_APP_BASE_API + '/api/v1/borrow/prove'
       },
       // 表单参数
       form: {
@@ -512,6 +544,10 @@ export default {
       this.isEdit = false
       this.fileList = []
       this.form.borrowImg = ''
+      this.prove = []
+      this.struct = []
+      this.form.borrowStructImg = ''
+      this.form.provePdf = ''
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
@@ -529,7 +565,9 @@ export default {
         this.open = true
         this.title = '修改借款'
         this.isEdit = true
-        // this.form.borrowImg = ""
+        this.fileList = []
+        this.prove = []
+        this.struct = []
         var fileBool = !!response.data.borrowImg
         if (fileBool === true) {
           this.form.borrowImg = response.data.borrowImg
@@ -539,6 +577,12 @@ export default {
           fileArr.forEach((item, index, array) => {
             this.fileList.push({ name: index, url: process.env.VUE_APP_BASE_API + '/' + item })
           })
+        }
+        if (response.data.borrowStructImg) {
+          this.struct = [{ name: '结构图', url: process.env.VUE_APP_BASE_API + '/' + response.data.borrowStructImg }]
+        }
+        if (response.data.provePdf) {
+          this.prove = [{ name: '证明文件', url: process.env.VUE_APP_BASE_API + '/' + response.data.provePdf }]
         }
       })
     },
@@ -599,6 +643,21 @@ export default {
     },
     handleFileSuccess(file) {
       this.form.borrowImg += file.data + ','
+      console.log(file)
+    },
+    handleStructRemove(file) {
+      this.form.borrowStructImg = ''
+      console.log(file)
+    },
+    handleStructSuccess(file) {
+      this.form.borrowStructImg = file.data
+      console.log(file)
+    },
+    handleProveRemove(file) {
+      this.form.provePdf = ''
+    },
+    handleProveSuccess(file) {
+      this.form.provePdf = file.data
       console.log(file)
     }
   }
